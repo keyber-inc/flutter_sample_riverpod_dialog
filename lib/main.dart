@@ -1,38 +1,37 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:riverpod/riverpod.dart';
+
+final navigatorKeyProvider = Provider(
+  (_) => GlobalKey<NavigatorState>(),
+);
 
 void main() {
-  runApp(MultiProvider(
-    providers: [
-      Provider(create: (_) => GlobalKey<NavigatorState>()),
-    ],
-    child: const MyApp(),
-  ));
+  runApp(
+    const ProviderScope(
+      child: MyApp(),
+    ),
+  );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
-      navigatorKey: context.read(),
-      home: ChangeNotifierProvider(
-        create: (context) => Model(
-          navigatorKey: context.read(),
-        ),
-        child: const Home(),
-      ),
+      navigatorKey: ref.read(navigatorKeyProvider),
+      home: const Home(),
     );
   }
 }
 
-class Home extends StatelessWidget {
+class Home extends ConsumerWidget {
   const Home({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    final model = context.watch<Model>();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final model = ref.read(modelProvider);
     return Scaffold(
       key: model.scaffoldKey,
       appBar: AppBar(
@@ -57,6 +56,12 @@ class Home extends StatelessWidget {
     );
   }
 }
+
+final modelProvider = ChangeNotifierProvider(
+  (ref) => Model(
+    navigatorKey: ref.read(navigatorKeyProvider),
+  ),
+);
 
 class Model with ChangeNotifier {
   Model({
