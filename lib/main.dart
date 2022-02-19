@@ -28,33 +28,52 @@ class Home extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final model = ref.read(modelProvider);
+    return HandleEvent(
+      event: model.event,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Sample'),
+        ),
+        body: ListView(
+          children: [
+            ListTile(
+              title: const Text('Navigation'),
+              onTap: model.push,
+            ),
+            ListTile(
+              title: const Text('Alert Dialog'),
+              onTap: model.showAlertDialog,
+            ),
+            ListTile(
+              title: const Text('SnackBar'),
+              onTap: model.showSnackBar,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class HandleEvent extends StatelessWidget {
+  const HandleEvent({
+    Key? key,
+    required this.child,
+    required this.event,
+  }) : super(key: key);
+
+  final Widget child;
+  final Stream<String> event;
+
+  @override
+  Widget build(BuildContext context) {
     return StreamBuilder<String>(
-      stream: model.event,
+      stream: event,
       builder: (context, snapshot) {
         WidgetsBinding.instance?.addPostFrameCallback((_) {
           _handleEvent(context, snapshot.data);
         });
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Sample'),
-          ),
-          body: ListView(
-            children: [
-              ListTile(
-                title: const Text('Navigation'),
-                onTap: model.push,
-              ),
-              ListTile(
-                title: const Text('Alert Dialog'),
-                onTap: model.showAlertDialog,
-              ),
-              ListTile(
-                title: const Text('SnackBar'),
-                onTap: model.showSnackBar,
-              ),
-            ],
-          ),
-        );
+        return child;
       },
     );
   }
