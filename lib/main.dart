@@ -16,8 +16,8 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return MaterialApp(
-      home: const Home(),
+    return const MaterialApp(
+      home: Home(),
     );
   }
 }
@@ -28,33 +28,38 @@ class Home extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final model = ref.read(modelProvider);
-    model.event.listen((event) {
-      _handleEvent(context, event);
-    });
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sample'),
-      ),
-      body: ListView(
-        children: [
-          ListTile(
-            title: const Text('Navigation'),
-            onTap: model.push,
+    return StreamBuilder<String>(
+      stream: model.event,
+      builder: (context, snapshot) {
+        WidgetsBinding.instance?.addPostFrameCallback((_) {
+          _handleEvent(context, snapshot.data);
+        });
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Sample'),
           ),
-          ListTile(
-            title: const Text('Alert Dialog'),
-            onTap: model.showAlertDialog,
+          body: ListView(
+            children: [
+              ListTile(
+                title: const Text('Navigation'),
+                onTap: model.push,
+              ),
+              ListTile(
+                title: const Text('Alert Dialog'),
+                onTap: model.showAlertDialog,
+              ),
+              ListTile(
+                title: const Text('SnackBar'),
+                onTap: model.showSnackBar,
+              ),
+            ],
           ),
-          ListTile(
-            title: const Text('SnackBar'),
-            onTap: model.showSnackBar,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  void _handleEvent(BuildContext context, String event) {
+  void _handleEvent(BuildContext context, String? event) {
     print('receive: $event');
     switch (event) {
       case 'push':
