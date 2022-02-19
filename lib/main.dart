@@ -1,10 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:riverpod/riverpod.dart';
-
-final navigatorKeyProvider = Provider(
-  (_) => GlobalKey<NavigatorState>(),
-);
 
 void main() {
   runApp(
@@ -20,7 +17,6 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
-      navigatorKey: ref.read(navigatorKeyProvider),
       home: const Home(),
     );
   }
@@ -32,8 +28,10 @@ class Home extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final model = ref.read(modelProvider);
+    model.event.listen((event) {
+      _handleEvent(context, event);
+    });
     return Scaffold(
-      key: model.scaffoldKey,
       appBar: AppBar(
         title: const Text('Sample'),
       ),
@@ -55,48 +53,67 @@ class Home extends ConsumerWidget {
       ),
     );
   }
+
+  void _handleEvent(BuildContext context, String event) {
+    print('receive: $event');
+    switch (event) {
+      case 'push':
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => Scaffold(
+              appBar: AppBar(
+                title: const Text('Next Page'),
+              ),
+            ),
+          ),
+        );
+        break;
+
+      case 'showAlertDialog':
+        showDialog(
+          context: context,
+          builder: (context) => const AlertDialog(
+            title: Text('Alert Dialog'),
+          ),
+        );
+        break;
+
+      case 'showSnackBar':
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('SnackBar'),
+          ),
+        );
+        break;
+    }
+  }
 }
 
 final modelProvider = ChangeNotifierProvider(
-  (ref) => Model(
-    navigatorKey: ref.read(navigatorKeyProvider),
-  ),
+  (ref) => Model(),
 );
 
 class Model with ChangeNotifier {
-  Model({
-    required this.navigatorKey,
-  });
+  Model();
 
-  final GlobalKey<NavigatorState> navigatorKey;
-  final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+  final _streamController = StreamController<String>.broadcast();
+  Stream<String> get event => _streamController.stream;
+
+  @override
+  void dispose() {
+    _streamController.close();
+    super.dispose();
+  }
 
   void push() {
-    Navigator.of(navigatorKey.currentContext!).push(
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text('Next Page'),
-          ),
-        ),
-      ),
-    );
+    _streamController.sink.add('push');
   }
 
   void showAlertDialog() {
-    showDialog(
-      context: scaffoldKey.currentContext!,
-      builder: (context) => const AlertDialog(
-        title: Text('Alert Dialog'),
-      ),
-    );
+    _streamController.sink.add('showAlertDialog');
   }
 
   void showSnackBar() {
-    ScaffoldMessenger.of(scaffoldKey.currentContext!).showSnackBar(
-      const SnackBar(
-        content: Text('SnackBar'),
-      ),
-    );
+    _streamController.sink.add('showSnackBar');
   }
 }
