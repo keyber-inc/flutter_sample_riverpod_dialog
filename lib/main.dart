@@ -5,6 +5,9 @@ import 'package:riverpod/riverpod.dart';
 final navigatorKeyProvider = Provider(
   (_) => GlobalKey<NavigatorState>(),
 );
+final rootScaffoldMessengerKeyProvider = Provider(
+  (_) => GlobalKey<ScaffoldMessengerState>(),
+);
 
 void main() {
   runApp(
@@ -21,6 +24,7 @@ class MyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
       navigatorKey: ref.read(navigatorKeyProvider),
+      scaffoldMessengerKey: ref.read(rootScaffoldMessengerKeyProvider),
       home: const Home(),
     );
   }
@@ -33,7 +37,6 @@ class Home extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final model = ref.read(modelProvider);
     return Scaffold(
-      key: model.scaffoldKey,
       appBar: AppBar(
         title: const Text('Sample'),
       ),
@@ -58,34 +61,29 @@ class Home extends ConsumerWidget {
 }
 
 final modelProvider = ChangeNotifierProvider(
-  (ref) => Model(
-    navigatorKey: ref.read(navigatorKeyProvider),
-  ),
+  (ref) => Model(ref.read),
 );
 
 class Model with ChangeNotifier {
-  Model({
-    required this.navigatorKey,
-  });
+  Model(this._reader)
+      : navigatorKey = _reader(navigatorKeyProvider),
+        scaffoldMessengerKey = _reader(rootScaffoldMessengerKeyProvider);
 
+  final Reader _reader;
   final GlobalKey<NavigatorState> navigatorKey;
-  final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+  final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey;
 
   void push() {
     Navigator.of(navigatorKey.currentContext!).push(
       MaterialPageRoute(
-        builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text('Next Page'),
-          ),
-        ),
+        builder: (context) => const Next(),
       ),
     );
   }
 
   void showAlertDialog() {
     showDialog(
-      context: scaffoldKey.currentContext!,
+      context: navigatorKey.currentContext!,
       builder: (context) => const AlertDialog(
         title: Text('Alert Dialog'),
       ),
@@ -93,9 +91,35 @@ class Model with ChangeNotifier {
   }
 
   void showSnackBar() {
-    ScaffoldMessenger.of(scaffoldKey.currentContext!).showSnackBar(
+    scaffoldMessengerKey.currentState!.showSnackBar(
       const SnackBar(
         content: Text('SnackBar'),
+      ),
+    );
+  }
+}
+
+class Next extends ConsumerWidget {
+  const Next({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final model = ref.read(modelProvider);
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Next'),
+      ),
+      body: ListView(
+        children: [
+          ListTile(
+            title: const Text('Alert Dialog'),
+            onTap: model.showAlertDialog,
+          ),
+          ListTile(
+            title: const Text('SnackBar'),
+            onTap: model.showSnackBar,
+          ),
+        ],
       ),
     );
   }
